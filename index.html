@@ -75,6 +75,48 @@
         font-size: 0.78rem;
       }
 
+      .city-search {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .city-search input,
+      .city-search button {
+        min-height: 42px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 999px;
+        font: inherit;
+      }
+
+      .city-search input {
+        min-width: 0;
+        padding: 0 15px;
+        outline: none;
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+      }
+
+      .city-search input::placeholder {
+        color: rgba(216, 231, 255, 0.66);
+      }
+
+      .city-search button {
+        padding: 0 17px;
+        background: linear-gradient(135deg, #f0c17a, #a94735);
+        color: #23120d;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .search-status {
+        min-height: 20px;
+        margin-top: 8px;
+        color: #f0d69d;
+        font-size: 0.86rem;
+      }
+
       .city-card {
         position: absolute;
         right: 24px;
@@ -235,6 +277,10 @@
           max-width: none;
         }
 
+        .city-search {
+          grid-template-columns: 1fr;
+        }
+
         .hint {
           right: 16px;
           bottom: 16px;
@@ -264,6 +310,18 @@
         <h1>Three.js 3D 地球</h1>
         <p>地球会自动缓慢旋转，也可以用鼠标拖拽旋转、滚轮缩放。点击红色城市标记查看诗食卡片。</p>
         <span class="texture-url" id="texture-url"></span>
+        <form class="city-search" id="city-search">
+          <input
+            id="city-search-input"
+            type="search"
+            name="city"
+            placeholder="输入城市名，如 惠州"
+            autocomplete="off"
+            aria-label="搜索城市"
+          />
+          <button type="submit">飞往城市</button>
+        </form>
+        <div class="search-status" id="search-status" aria-live="polite"></div>
       </section>
       <article class="city-card" id="city-card" aria-live="polite">
         <button class="city-card__close" id="city-card-close" type="button" aria-label="关闭城市卡片">
@@ -297,6 +355,9 @@
 
       const canvas = document.querySelector('#earth-canvas');
       const textureUrl = document.querySelector('#texture-url');
+      const citySearchForm = document.querySelector('#city-search');
+      const citySearchInput = document.querySelector('#city-search-input');
+      const searchStatus = document.querySelector('#search-status');
       const cityCard = document.querySelector('#city-card');
       const cityCardClose = document.querySelector('#city-card-close');
       const cardCityName = document.querySelector('#card-city-name');
@@ -383,6 +444,8 @@
       const stars = createStarField();
       const clock = new THREE.Clock();
       let lycheeEffect = null;
+      let cameraFlight = null;
+      let autoRotateEnabled = true;
       scene.add(stars);
 
       function createCityMarkers(cities) {
@@ -588,6 +651,81 @@
         return x * x * (3 - 2 * x);
       }
 
+      function findCityByName(cityName) {
+        const normalizedQuery = cityName.trim().toLocaleLowerCase('zh-CN');
+
+        return poemData.cities.find((city) => {
+          const normalizedCity = city.cityName.toLocaleLowerCase('zh-CN');
+          return normalizedCity === normalizedQuery || normalizedCity.includes(normalizedQuery);
+        });
+      }
+
+      function flyToCity(city) {
+        earthGroup.updateMatrixWorld(true);
+
+        const cityWorldPosition = latLonToVector3(
+          city.coordinates.latitude,
+          city.coordinates.longitude,
+          MARKER_RADIUS,
+        ).applyMatrix4(earthGroup.matrixWorld);
+        const cityNormal = cityWorldPosition.clone().normalize();
+        const destination = cityNormal.clone().multiplyScalar(4.15);
+        const target = cityNormal.clone().multiplyScalar(EARTH_RADIUS * 0.98);
+
+        cameraFlight = {
+          city,
+          startedAt: performance.now(),
+          duration: 1900,
+          fromPosition: camera.position.clone(),
+          toPosition: destination,
+          fromTarget: controls.target.clone(),
+          toTarget: target,
+        };
+
+        autoRotateEnabled = false;
+        controls.enabled = false;
+        searchStatus.textContent = `正在飞往${city.cityName}...`;
+      }
+
+      function updateCameraFlight() {
+        if (!cameraFlight) {
+          return;
+        }
+
+        const progress = THREE.MathUtils.clamp(
+          (performance.now() - cameraFlight.startedAt) / cameraFlight.duration,
+          0,
+          1,
+        );
+        const easedProgress = easeInOutCubic(progress);
+
+        camera.position.lerpVectors(
+          cameraFlight.fromPosition,
+          cameraFlight.toPosition,
+          easedProgress,
+        );
+        controls.target.lerpVectors(
+          cameraFlight.fromTarget,
+          cameraFlight.toTarget,
+          easedProgress,
+        );
+        camera.lookAt(controls.target);
+
+        if (progress >= 1) {
+          const { city } = cameraFlight;
+          cameraFlight = null;
+          controls.enabled = true;
+          controls.update();
+          showCityCard(city);
+          showLycheeParticleEffect(city);
+          searchStatus.textContent = `已抵达${city.cityName}`;
+        }
+      }
+
+      function easeInOutCubic(value) {
+        return value < 0.5 ? 4 * value * value * value : 1 - ((-2 * value + 2) ** 3) / 2;
+      }
+
       function createStarField() {
         const starCount = 1600;
         const positions = new Float32Array(starCount * 3);
@@ -663,8 +801,11 @@
         const delta = clock.getDelta();
         const elapsed = clock.elapsedTime;
 
-        earthGroup.rotation.y += 0.0015;
+        if (autoRotateEnabled && !cameraFlight) {
+          earthGroup.rotation.y += 0.0015;
+        }
         stars.rotation.y -= 0.0002;
+        updateCameraFlight();
         updateLycheeParticles(delta, elapsed);
         controls.update();
         renderer.render(scene, camera);
@@ -672,6 +813,31 @@
 
       window.addEventListener('resize', resize);
       canvas.addEventListener('click', handleCanvasClick);
+      citySearchForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        const cityName = citySearchInput.value.trim();
+        if (!cityName) {
+          searchStatus.textContent = '请输入城市名，例如：惠州';
+          return;
+        }
+
+        const city = findCityByName(cityName);
+        if (!city) {
+          searchStatus.textContent = `没有找到“${cityName}”，可搜索：${poemData.cities
+            .map((item) => item.cityName)
+            .join('、')}`;
+          return;
+        }
+
+        flyToCity(city);
+      });
+      controls.addEventListener('start', () => {
+        if (!cameraFlight) {
+          autoRotateEnabled = true;
+          searchStatus.textContent = '';
+        }
+      });
       cityCardClose.addEventListener('click', () => {
         cityCard.classList.remove('is-visible');
       });
