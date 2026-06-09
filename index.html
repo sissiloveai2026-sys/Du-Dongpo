@@ -725,7 +725,8 @@
           cameraFlight = null;
           controls.enabled = true;
           controls.update();
-          showCityCard(city);
+          const requestId = showCityCard(city);
+          loadRemotePoemForCity(city, requestId);
           showLycheeParticleEffect(city);
           searchStatus.textContent = `已抵达${city.cityName}`;
         }
@@ -822,13 +823,13 @@
           return;
         }
 
-        const title = remotePoem.origin ?? remotePoem.title ?? city.poemTitle;
+        const title = remotePoem.origin ?? city.poemTitle;
         const content = remotePoem.content ?? '';
         const lines = splitPoemContent(content);
 
         cardPoemTitle.textContent = `《${title}》`;
         renderPoemLines(lines.length > 0 ? lines : city.poemExcerpt);
-        cardPoemSource.textContent = `今日诗词接口 · ${remotePoem.author ?? '苏轼'}`;
+        cardPoemSource.textContent = `今日诗词接口 · 已显示 origin 和 content · ${remotePoem.author ?? '苏轼'}`;
       }
 
       function splitPoemContent(content) {
@@ -860,7 +861,7 @@
         cardCoordinates.textContent = `坐标：${city.coordinates.latitude.toFixed(4)}, ${city.coordinates.longitude.toFixed(4)}`;
         cardPoemSource.textContent = '本地 poems.json 示例 · 正在联网更新诗词';
         cityCard.classList.add('is-visible');
-        loadRemotePoemForCity(city, requestId);
+        return requestId;
       }
 
       function updatePointer(event) {
@@ -876,7 +877,8 @@
         const intersects = raycaster.intersectObjects(markerMeshes, false);
         const city = intersects[0]?.object.userData.city;
         if (city) {
-          showCityCard(city);
+          const requestId = showCityCard(city);
+          loadRemotePoemForCity(city, requestId);
           showLycheeParticleEffect(city);
         }
       }
