@@ -1,1 +1,67 @@
-{}
+{
+  "template": {
+    "cityName": "城市名",
+    "coordinates": {
+      "latitude": "城市纬度",
+      "longitude": "城市经度"
+    },
+    "poemTitle": "诗词标题",
+    "poemExcerpt": ["诗句节选，可按行拆分"],
+    "foodName": "当地美食名字",
+    "foodDescription": "美食描述",
+    "imagePath": "图片路径，例如 /images/example.jpg"
+  },
+  "cities": [
+    {
+      "cityName": "眉山",
+      "coordinates": {
+        "latitude": 30.0754,
+        "longitude": 103.8485
+      },
+      "poemTitle": "初发嘉州",
+      "poemExcerpt": [
+        "朝发鼓阗阗，",
+        "西风猎画旃。",
+        "故乡飘已远，",
+        "往意浩无边。"
+      ],
+      "foodName": "东坡肘子",
+      "foodDescription": "眉山是苏轼故乡，东坡肘子以猪肘慢炖至软糯入味，色泽红亮，常被作为东坡家乡饮食文化的代表。",
+      "imagePath": "/images/meishan-dongpo-elbow.jpg"
+    },
+    {
+      "cityName": "杭州",
+      "coordinates": {
+        "latitude": 30.2741,
+        "longitude": 120.1551
+      },
+      "poemTitle": "饮湖上初晴后雨",
+      "poemExcerpt": [
+        "水光潋滟晴方好，",
+        "山色空蒙雨亦奇。",
+        "欲把西湖比西子，",
+        "淡妆浓抹总相宜。"
+      ],
+      "foodName": "东坡肉",
+      "foodDescription": "苏轼两度任职杭州，传说他疏浚西湖后以猪肉犒劳民工，后世形成肥而不腻、酥烂浓香的杭州名菜东坡肉。",
+      "imagePath": "/images/hangzhou-dongpo-pork.jpg"
+    },
+    {
+      "cityName": "惠州",
+      "coordinates": {
+        "latitude": 23.1115,
+        "longitude": 114.4152
+      },
+      "poemTitle": "惠州一绝",
+      "poemExcerpt": [
+        "罗浮山下四时春，",
+        "卢橘杨梅次第新。",
+        "日啖荔枝三百颗，",
+        "不辞长作岭南人。"
+      ],
+      "foodName": "荔枝",
+      "foodDescription": "苏轼贬居惠州时写下咏荔枝名句，荔枝也成为他在岭南生活中最具代表性的甜美记忆。",
+      "imagePath": "/images/huizhou-lychee.jpg"
+    }
+  ]
+}
