@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="使用 Three.js 实现的可拖拽、可缩放、自动旋转 3D 地球。"
+      content="使用 Three.js 实现的苏东坡 3D 地球诗食地图，展示眉山、杭州、惠州的诗词和美食。"
     />
-    <title>Three.js 3D 地球</title>
+    <title>苏东坡 3D 诗食地图</title>
     <style>
       * {
         box-sizing: border-box;
@@ -311,10 +311,10 @@
   </head>
   <body>
     <main id="app">
-      <canvas id="earth-canvas" aria-label="可交互的 3D 地球"></canvas>
+      <canvas id="earth-canvas" aria-label="苏东坡主要城市 3D 地球地图"></canvas>
       <section class="panel">
-        <h1>Three.js 3D 地球</h1>
-        <p>地球会自动缓慢旋转，也可以用鼠标拖拽旋转、滚轮缩放。点击红色城市标记查看诗食卡片。</p>
+        <h1>苏东坡 3D 诗食地图</h1>
+        <p>在 3D 地球上查看苏东坡去过的眉山、杭州、惠州。点击红色城市标记，弹出诗词和美食卡片。</p>
         <span class="texture-url" id="texture-url"></span>
         <form class="city-search" id="city-search">
           <input
