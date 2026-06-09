@@ -292,6 +292,8 @@
         'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg';
       const EARTH_RADIUS = 1.6;
       const MARKER_RADIUS = 1.66;
+      const LYCHEE_CITY_NAME = '惠州';
+      const LYCHEE_PARTICLE_COUNT = 150;
 
       const canvas = document.querySelector('#earth-canvas');
       const textureUrl = document.querySelector('#texture-url');
@@ -379,6 +381,8 @@
       const raycaster = new THREE.Raycaster();
       const pointer = new THREE.Vector2();
       const stars = createStarField();
+      const clock = new THREE.Clock();
+      let lycheeEffect = null;
       scene.add(stars);
 
       function createCityMarkers(cities) {
@@ -428,6 +432,160 @@
           radius * Math.cos(phi),
           radius * Math.sin(phi) * Math.sin(theta),
         );
+      }
+
+      function createLycheeParticleEffect(city) {
+        const basePosition = latLonToVector3(
+          city.coordinates.latitude,
+          city.coordinates.longitude,
+          MARKER_RADIUS + 0.02,
+        );
+        const normal = basePosition.clone().normalize();
+        const basis = createSurfaceBasis(normal);
+        const group = new THREE.Group();
+        const geometry = new THREE.SphereGeometry(1, 12, 12);
+        const material = new THREE.MeshBasicMaterial({
+          transparent: true,
+          opacity: 0.92,
+          depthWrite: false,
+          vertexColors: true,
+        });
+        const mesh = new THREE.InstancedMesh(geometry, material, LYCHEE_PARTICLE_COUNT);
+        const particles = [];
+        const matrix = new THREE.Matrix4();
+        const color = new THREE.Color();
+
+        mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+        for (let index = 0; index < LYCHEE_PARTICLE_COUNT; index += 1) {
+          const isPink = index % 5 !== 0;
+          mesh.setColorAt(index, color.set(isPink ? 0xff7aa8 : 0xfff4f7));
+          particles.push(createLycheeParticle(index / LYCHEE_PARTICLE_COUNT));
+          matrix.makeScale(0.001, 0.001, 0.001);
+          mesh.setMatrixAt(index, matrix);
+        }
+
+        mesh.instanceColor.needsUpdate = true;
+        group.add(mesh);
+
+        // A faint Song-painting-like canopy helps the falling fruit read as a lychee tree.
+        const canopy = new THREE.Mesh(
+          new THREE.SphereGeometry(0.24, 24, 16),
+          new THREE.MeshBasicMaterial({
+            color: 0x88b56a,
+            transparent: true,
+            opacity: 0.13,
+            depthWrite: false,
+          }),
+        );
+        canopy.position.copy(
+          basePosition
+            .clone()
+            .add(normal.clone().multiplyScalar(0.42))
+            .add(basis.forward.clone().multiplyScalar(0.02)),
+        );
+        canopy.scale.set(1.25, 0.95, 0.72);
+        group.add(canopy);
+
+        return {
+          group,
+          mesh,
+          particles,
+          basePosition,
+          basis,
+          matrix,
+        };
+      }
+
+      function createSurfaceBasis(normal) {
+        const reference = Math.abs(normal.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+        const right = new THREE.Vector3().crossVectors(reference, normal).normalize();
+        const forward = new THREE.Vector3().crossVectors(normal, right).normalize();
+
+        return {
+          up: normal,
+          right,
+          forward,
+        };
+      }
+
+      function createLycheeParticle(seed) {
+        const angle = Math.random() * Math.PI * 2;
+        const canopyRadius = Math.sqrt(Math.random()) * 0.32;
+
+        return {
+          x: Math.cos(angle) * canopyRadius,
+          z: Math.sin(angle) * canopyRadius * 0.72,
+          startHeight: 0.66 + Math.random() * 0.2,
+          fallDistance: 0.48 + Math.random() * 0.22,
+          speed: 0.035 + Math.random() * 0.04,
+          phase: Math.random() * Math.PI * 2,
+          progress: seed,
+          minSize: 0.004 + Math.random() * 0.004,
+          maxSize: 0.02 + Math.random() * 0.023,
+        };
+      }
+
+      function showLycheeParticleEffect(city) {
+        clearLycheeParticleEffect();
+
+        if (city.cityName !== LYCHEE_CITY_NAME) {
+          return;
+        }
+
+        lycheeEffect = createLycheeParticleEffect(city);
+        earthGroup.add(lycheeEffect.group);
+      }
+
+      function clearLycheeParticleEffect() {
+        if (!lycheeEffect) {
+          return;
+        }
+
+        earthGroup.remove(lycheeEffect.group);
+        lycheeEffect.group.traverse((object) => {
+          if (object.geometry) object.geometry.dispose();
+          if (object.material) object.material.dispose();
+        });
+        lycheeEffect = null;
+      }
+
+      function updateLycheeParticles(delta, elapsed) {
+        if (!lycheeEffect) {
+          return;
+        }
+
+        const { mesh, particles, basePosition, basis, matrix } = lycheeEffect;
+        const position = new THREE.Vector3();
+        const scale = new THREE.Vector3();
+        const quaternion = new THREE.Quaternion();
+
+        particles.forEach((particle, index) => {
+          particle.progress = (particle.progress + delta * particle.speed) % 1;
+
+          const driftX = Math.sin(elapsed * 0.85 + particle.phase) * 0.035;
+          const driftZ = Math.cos(elapsed * 0.68 + particle.phase) * 0.026;
+          const height = particle.startHeight - particle.fallDistance * particle.progress;
+          const grow = smoothstep(0.06, 0.86, particle.progress);
+          const size = particle.minSize + (particle.maxSize - particle.minSize) * grow;
+
+          position
+            .copy(basePosition)
+            .add(basis.up.clone().multiplyScalar(height))
+            .add(basis.right.clone().multiplyScalar(particle.x + driftX))
+            .add(basis.forward.clone().multiplyScalar(particle.z + driftZ));
+
+          scale.setScalar(size);
+          matrix.compose(position, quaternion, scale);
+          mesh.setMatrixAt(index, matrix);
+        });
+
+        mesh.instanceMatrix.needsUpdate = true;
+      }
+
+      function smoothstep(edge0, edge1, value) {
+        const x = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);
+        return x * x * (3 - 2 * x);
       }
 
       function createStarField() {
@@ -488,6 +646,7 @@
         const city = intersects[0]?.object.userData.city;
         if (city) {
           showCityCard(city);
+          showLycheeParticleEffect(city);
         }
       }
 
@@ -501,9 +660,12 @@
 
       function animate() {
         requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+        const elapsed = clock.elapsedTime;
 
         earthGroup.rotation.y += 0.0015;
         stars.rotation.y -= 0.0002;
+        updateLycheeParticles(delta, elapsed);
         controls.update();
         renderer.render(scene, camera);
       }
