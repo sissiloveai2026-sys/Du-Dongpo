@@ -5,12 +5,246 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="苏东坡美食诗词地图：在 3D 地球上探索苏轼的行旅、诗文与美食。"
+      content="使用 Three.js 实现的可拖拽、可缩放、自动旋转 3D 地球。"
     />
-    <title>苏东坡美食诗词地图</title>
+    <title>Three.js 3D 地球</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #020611;
+        color: #ffffff;
+        font-family:
+          Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      }
+
+      #app {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      #earth-canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: grab;
+      }
+
+      #earth-canvas:active {
+        cursor: grabbing;
+      }
+
+      .panel {
+        position: absolute;
+        top: 24px;
+        left: 24px;
+        max-width: 380px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 22px;
+        padding: 18px 20px;
+        background: rgba(4, 10, 25, 0.62);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.36);
+        backdrop-filter: blur(16px);
+      }
+
+      .panel h1 {
+        margin: 0 0 10px;
+        font-size: clamp(1.75rem, 4vw, 3rem);
+        letter-spacing: -0.06em;
+      }
+
+      .panel p {
+        margin: 0;
+        color: #d8e7ff;
+        line-height: 1.7;
+      }
+
+      .texture-url {
+        display: block;
+        margin-top: 14px;
+        overflow-wrap: anywhere;
+        color: #8ec7ff;
+        font-size: 0.78rem;
+      }
+
+      .hint {
+        position: absolute;
+        right: 24px;
+        bottom: 24px;
+        border-radius: 999px;
+        padding: 12px 18px;
+        background: rgba(4, 10, 25, 0.62);
+        color: #d8e7ff;
+        font-size: 0.95rem;
+        backdrop-filter: blur(16px);
+      }
+
+      @media (max-width: 640px) {
+        .panel {
+          top: 16px;
+          left: 16px;
+          right: 16px;
+          max-width: none;
+        }
+
+        .hint {
+          right: 16px;
+          bottom: 16px;
+          left: 16px;
+          text-align: center;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+    <main id="app">
+      <canvas id="earth-canvas" aria-label="可交互的 3D 地球"></canvas>
+      <section class="panel">
+        <h1>Three.js 3D 地球</h1>
+        <p>地球会自动缓慢旋转，也可以用鼠标拖拽旋转、滚轮缩放。</p>
+        <span class="texture-url" id="texture-url"></span>
+      </section>
+      <div class="hint">拖拽旋转 · 滚轮缩放</div>
+    </main>
+
+    <script type="module">
+      import * as THREE from 'three';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+      const EARTH_TEXTURE_URL =
+        'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg';
+
+      const canvas = document.querySelector('#earth-canvas');
+      const textureUrl = document.querySelector('#texture-url');
+      textureUrl.textContent = `地图纹理：${EARTH_TEXTURE_URL}`;
+
+      const renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x020611);
+      scene.fog = new THREE.Fog(0x020611, 8, 18);
+
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        100,
+      );
+      camera.position.set(0, 0.35, 5);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.enablePan = false;
+      controls.minDistance = 2.6;
+      controls.maxDistance = 8;
+      controls.rotateSpeed = 0.55;
+      controls.zoomSpeed = 0.85;
+
+      const ambientLight = new THREE.AmbientLight(0x9dbfff, 1.35);
+      scene.add(ambientLight);
+
+      const sunLight = new THREE.DirectionalLight(0xffffff, 2.4);
+      sunLight.position.set(5, 3, 5);
+      scene.add(sunLight);
+
+      const rimLight = new THREE.DirectionalLight(0x70a8ff, 1.1);
+      rimLight.position.set(-4, 1.8, -3);
+      scene.add(rimLight);
+
+      const earthGroup = new THREE.Group();
+      scene.add(earthGroup);
+
+      const textureLoader = new THREE.TextureLoader();
+      const earthTexture = textureLoader.load(EARTH_TEXTURE_URL);
+      earthTexture.colorSpace = THREE.SRGBColorSpace;
+
+      const earth = new THREE.Mesh(
+        new THREE.SphereGeometry(1.6, 96, 96),
+        new THREE.MeshStandardMaterial({
+          map: earthTexture,
+          roughness: 0.82,
+          metalness: 0.02,
+        }),
+      );
+      earthGroup.add(earth);
+
+      const atmosphere = new THREE.Mesh(
+        new THREE.SphereGeometry(1.66, 96, 96),
+        new THREE.MeshBasicMaterial({
+          color: 0x4aa3ff,
+          transparent: true,
+          opacity: 0.18,
+          side: THREE.BackSide,
+        }),
+      );
+      earthGroup.add(atmosphere);
+
+      const stars = createStarField();
+      scene.add(stars);
+
+      function createStarField() {
+        const starCount = 1600;
+        const positions = new Float32Array(starCount * 3);
+
+        for (let index = 0; index < starCount; index += 1) {
+          const radius = THREE.MathUtils.randFloat(9, 16);
+          const theta = THREE.MathUtils.randFloat(0, Math.PI * 2);
+          const phi = Math.acos(THREE.MathUtils.randFloatSpread(2));
+
+          positions[index * 3] = radius * Math.sin(phi) * Math.cos(theta);
+          positions[index * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+          positions[index * 3 + 2] = radius * Math.cos(phi);
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        const material = new THREE.PointsMaterial({
+          color: 0xd9ecff,
+          size: 0.025,
+          transparent: true,
+          opacity: 0.85,
+          sizeAttenuation: true,
+        });
+
+        return new THREE.Points(geometry, material);
+      }
+
+      function resize() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        renderer.setSize(width, height, false);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        earthGroup.rotation.y += 0.0015;
+        stars.rotation.y -= 0.0002;
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      window.addEventListener('resize', resize);
+
+      resize();
+      animate();
+    </script>
   </body>
 </html>
