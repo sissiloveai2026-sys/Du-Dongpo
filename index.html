@@ -359,6 +359,8 @@
       const MARKER_RADIUS = 1.66;
       const LYCHEE_CITY_NAME = '惠州';
       const LYCHEE_PARTICLE_COUNT = 150;
+      const POEM_API_URL = 'https://v1.jinrishici.com/';
+      const POEM_FETCH_TIMEOUT_MS = 3200;
 
       const canvas = document.querySelector('#earth-canvas');
       const textureUrl = document.querySelector('#texture-url');
@@ -422,16 +424,29 @@
       earthGroup.add(markerGroup);
 
       const textureLoader = new THREE.TextureLoader();
-      const earthTexture = textureLoader.load(EARTH_TEXTURE_URL);
-      earthTexture.colorSpace = THREE.SRGBColorSpace;
+      textureLoader.setCrossOrigin('anonymous');
+      const earthMaterial = new THREE.MeshStandardMaterial({
+        map: createFallbackEarthTexture(),
+        roughness: 0.82,
+        metalness: 0.02,
+      });
+      textureLoader.load(
+        EARTH_TEXTURE_URL,
+        (earthTexture) => {
+          earthTexture.colorSpace = THREE.SRGBColorSpace;
+          earthMaterial.map = earthTexture;
+          earthMaterial.needsUpdate = true;
+        },
+        undefined,
+        (error) => {
+          console.error('地图纹理加载失败，已使用本地兜底纹理:', error);
+          textureUrl.textContent = `地图纹理加载失败，当前使用本地兜底纹理。原始 URL：${EARTH_TEXTURE_URL}`;
+        },
+      );
 
       const earth = new THREE.Mesh(
         new THREE.SphereGeometry(EARTH_RADIUS, 96, 96),
-        new THREE.MeshStandardMaterial({
-          map: earthTexture,
-          roughness: 0.82,
-          metalness: 0.02,
-        }),
+        earthMaterial,
       );
       earthGroup.add(earth);
 
@@ -504,6 +519,74 @@
           radius * Math.cos(phi),
           radius * Math.sin(phi) * Math.sin(theta),
         );
+      }
+
+      function createFallbackEarthTexture() {
+        const textureCanvas = document.createElement('canvas');
+        textureCanvas.width = 1024;
+        textureCanvas.height = 512;
+        const context = textureCanvas.getContext('2d');
+
+        const oceanGradient = context.createLinearGradient(0, 0, 0, textureCanvas.height);
+        oceanGradient.addColorStop(0, '#0b2d5c');
+        oceanGradient.addColorStop(0.52, '#0f5f8e');
+        oceanGradient.addColorStop(1, '#06172f');
+        context.fillStyle = oceanGradient;
+        context.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+
+        context.fillStyle = 'rgba(122, 157, 89, 0.72)';
+        drawFallbackLand(context, [
+          [0.57, 0.28],
+          [0.66, 0.22],
+          [0.76, 0.25],
+          [0.79, 0.34],
+          [0.72, 0.45],
+          [0.62, 0.47],
+          [0.55, 0.38],
+        ]);
+        drawFallbackLand(context, [
+          [0.18, 0.27],
+          [0.31, 0.22],
+          [0.38, 0.34],
+          [0.32, 0.49],
+          [0.2, 0.5],
+          [0.14, 0.38],
+        ]);
+        drawFallbackLand(context, [
+          [0.33, 0.52],
+          [0.42, 0.58],
+          [0.39, 0.8],
+          [0.31, 0.86],
+          [0.27, 0.68],
+        ]);
+
+        context.strokeStyle = 'rgba(220, 239, 255, 0.2)';
+        context.lineWidth = 1;
+        for (let x = 0; x <= textureCanvas.width; x += 128) {
+          context.beginPath();
+          context.moveTo(x, 0);
+          context.lineTo(x, textureCanvas.height);
+          context.stroke();
+        }
+
+        const texture = new THREE.CanvasTexture(textureCanvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        return texture;
+      }
+
+      function drawFallbackLand(context, points) {
+        context.beginPath();
+        points.forEach(([x, y], index) => {
+          const canvasX = x * context.canvas.width;
+          const canvasY = y * context.canvas.height;
+          if (index === 0) {
+            context.moveTo(canvasX, canvasY);
+          } else {
+            context.lineTo(canvasX, canvasY);
+          }
+        });
+        context.closePath();
+        context.fill();
       }
 
       function createLycheeParticleEffect(city) {
@@ -765,21 +848,19 @@
       }
 
       async function fetchPoemByCity(cityName) {
-        const baseUrl = 'https://v1.jinrishici.com/';
         const cityKeywords = getCityPoemKeywords(cityName);
         let suShiFallback = null;
 
         for (let index = 0; index < 10; index += 1) {
           try {
-            const response = await fetch(baseUrl);
-            if (!response.ok) {
-              throw new Error(`诗词接口返回 ${response.status}`);
+            const poem = await fetchJsonWithTimeout(POEM_API_URL, POEM_FETCH_TIMEOUT_MS);
+            if (!isPoemApiResponse(poem)) {
+              continue;
             }
 
-            const poem = await response.json();
-            const author = poem.author ?? '';
-            const title = poem.origin ?? poem.title ?? '';
-            const content = poem.content ?? '';
+            const author = String(poem.author ?? '');
+            const title = String(poem.origin ?? poem.title ?? '');
+            const content = String(poem.content ?? '');
             const isSuShi = author === '苏轼' || author === '苏东坡';
 
             if (!isSuShi) {
@@ -798,6 +879,32 @@
         }
 
         return suShiFallback;
+      }
+
+      async function fetchJsonWithTimeout(url, timeoutMs) {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+          const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+              Accept: 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`诗词接口返回 ${response.status}`);
+          }
+
+          return await response.json();
+        } finally {
+          window.clearTimeout(timeoutId);
+        }
+      }
+
+      function isPoemApiResponse(poem) {
+        return poem && typeof poem === 'object' && 'author' in poem && 'content' in poem;
       }
 
       function getCityPoemKeywords(cityName) {
@@ -823,17 +930,17 @@
           return;
         }
 
-        const title = remotePoem.origin ?? city.poemTitle;
-        const content = remotePoem.content ?? '';
+        const title = String(remotePoem.origin ?? city.poemTitle);
+        const content = String(remotePoem.content ?? '');
         const lines = splitPoemContent(content);
 
         cardPoemTitle.textContent = `《${title}》`;
         renderPoemLines(lines.length > 0 ? lines : city.poemExcerpt);
-        cardPoemSource.textContent = `今日诗词接口 · 已显示 origin 和 content · ${remotePoem.author ?? '苏轼'}`;
+        cardPoemSource.textContent = `今日诗词接口 · 已显示 origin 和 content · ${String(remotePoem.author ?? '苏轼')}`;
       }
 
       function splitPoemContent(content) {
-        return content
+        return String(content)
           .replace(/\s+/g, '')
           .split(/(?<=[，。！？；])/u)
           .map((line) => line.trim())
