@@ -228,15 +228,21 @@
       }
 
       .city-card__food-desc,
-      .city-card__coords {
+      .city-card__coords,
+      .city-card__source {
         margin: 8px 0 0;
         color: #eadbc2;
         line-height: 1.75;
       }
 
-      .city-card__coords {
+      .city-card__coords,
+      .city-card__source {
         color: #c9d9ef;
         font-size: 0.88rem;
+      }
+
+      .city-card__source {
+        color: #f0d69d;
       }
 
       .city-card__seal {
@@ -335,6 +341,7 @@
           <p class="city-card__food-name" id="card-food-name"></p>
           <p class="city-card__food-desc" id="card-food-description"></p>
           <p class="city-card__coords" id="card-coordinates"></p>
+          <p class="city-card__source" id="card-poem-source"></p>
         </section>
         <div class="city-card__seal">东坡<br />食记</div>
       </article>
@@ -366,6 +373,7 @@
       const cardFoodName = document.querySelector('#card-food-name');
       const cardFoodDescription = document.querySelector('#card-food-description');
       const cardCoordinates = document.querySelector('#card-coordinates');
+      const cardPoemSource = document.querySelector('#card-poem-source');
       textureUrl.textContent = `地图纹理：${EARTH_TEXTURE_URL}`;
 
       const renderer = new THREE.WebGLRenderer({
@@ -446,6 +454,7 @@
       let lycheeEffect = null;
       let cameraFlight = null;
       let autoRotateEnabled = true;
+      let poemRequestId = 0;
       scene.add(stars);
 
       function createCityMarkers(cities) {
@@ -754,20 +763,104 @@
         return new THREE.Points(geometry, material);
       }
 
-      function showCityCard(city) {
-        cardCityName.textContent = city.cityName;
-        cardPoemTitle.textContent = `《${city.poemTitle}》`;
+      async function fetchPoemByCity(cityName) {
+        const baseUrl = 'https://v1.jinrishici.com/';
+        const cityKeywords = getCityPoemKeywords(cityName);
+        let suShiFallback = null;
+
+        for (let index = 0; index < 10; index += 1) {
+          try {
+            const response = await fetch(baseUrl);
+            if (!response.ok) {
+              throw new Error(`诗词接口返回 ${response.status}`);
+            }
+
+            const poem = await response.json();
+            const author = poem.author ?? '';
+            const title = poem.origin ?? poem.title ?? '';
+            const content = poem.content ?? '';
+            const isSuShi = author === '苏轼' || author === '苏东坡';
+
+            if (!isSuShi) {
+              continue;
+            }
+
+            suShiFallback ??= poem;
+
+            if (cityKeywords.some((keyword) => `${title}${content}`.includes(keyword))) {
+              return poem;
+            }
+          } catch (error) {
+            console.error('获取诗词失败:', error);
+            break;
+          }
+        }
+
+        return suShiFallback;
+      }
+
+      function getCityPoemKeywords(cityName) {
+        const keywordMap = {
+          眉山: ['眉山', '蜀', '嘉州', '故乡'],
+          杭州: ['杭州', '西湖', '湖上', '钱塘'],
+          惠州: ['惠州', '罗浮', '岭南', '荔枝'],
+        };
+
+        return keywordMap[cityName] ?? [cityName];
+      }
+
+      async function loadRemotePoemForCity(city, requestId) {
+        cardPoemSource.textContent = '正在尝试从今日诗词获取苏轼诗词...';
+        const remotePoem = await fetchPoemByCity(city.cityName);
+
+        if (requestId !== poemRequestId) {
+          return;
+        }
+
+        if (!remotePoem) {
+          cardPoemSource.textContent = '未从接口匹配到苏轼诗词，当前显示本地示例。';
+          return;
+        }
+
+        const title = remotePoem.origin ?? remotePoem.title ?? city.poemTitle;
+        const content = remotePoem.content ?? '';
+        const lines = splitPoemContent(content);
+
+        cardPoemTitle.textContent = `《${title}》`;
+        renderPoemLines(lines.length > 0 ? lines : city.poemExcerpt);
+        cardPoemSource.textContent = `今日诗词接口 · ${remotePoem.author ?? '苏轼'}`;
+      }
+
+      function splitPoemContent(content) {
+        return content
+          .replace(/\s+/g, '')
+          .split(/(?<=[，。！？；])/u)
+          .map((line) => line.trim())
+          .filter(Boolean);
+      }
+
+      function renderPoemLines(lines) {
         cardPoemExcerpt.replaceChildren(
-          ...city.poemExcerpt.map((line) => {
+          ...lines.map((line) => {
             const span = document.createElement('span');
             span.textContent = line;
             return span;
           }),
         );
+      }
+
+      function showCityCard(city) {
+        const requestId = (poemRequestId += 1);
+
+        cardCityName.textContent = city.cityName;
+        cardPoemTitle.textContent = `《${city.poemTitle}》`;
+        renderPoemLines(city.poemExcerpt);
         cardFoodName.textContent = city.foodName;
         cardFoodDescription.textContent = city.foodDescription;
         cardCoordinates.textContent = `坐标：${city.coordinates.latitude.toFixed(4)}, ${city.coordinates.longitude.toFixed(4)}`;
+        cardPoemSource.textContent = '本地 poems.json 示例 · 正在联网更新诗词';
         cityCard.classList.add('is-visible');
+        loadRemotePoemForCity(city, requestId);
       }
 
       function updatePointer(event) {
