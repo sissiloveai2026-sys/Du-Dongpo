@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>苏东坡美食诗词地图</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --ink-green: #173f36;
+      --deep-green: #0f2f29;
+      --light-green: #517265;
+      --rice: #f6efd9;
+      --rice-deep: #eadbb8;
+      --cinnabar: #a64231;
+      --gold: #b99555;
+      --shadow: rgba(15, 47, 41, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+      color: var(--deep-green);
+      background:
+        radial-gradient(circle at 15% 15%, rgba(185, 149, 85, 0.18), transparent 30%),
+        linear-gradient(135deg, #f9f1d9 0%, #efe2bf 42%, #f6efd9 100%);
+      overflow: hidden;
+    }
+
+    .page-shell {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      padding: 18px;
+    }
+
+    .map-frame {
+      position: relative;
+      height: 100%;
+      border: 2px solid rgba(23, 63, 54, 0.78);
+      border-radius: 24px;
+      overflow: hidden;
+      background: var(--rice);
+      box-shadow: 0 24px 60px var(--shadow), inset 0 0 0 8px rgba(246, 239, 217, 0.65);
+    }
+
+    .map-frame::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 450;
+      background:
+        linear-gradient(rgba(23, 63, 54, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(23, 63, 54, 0.04) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mix-blend-mode: multiply;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.52), transparent 34%),
+        radial-gradient(circle at 20% 80%, rgba(81, 114, 101, 0.14), transparent 25%),
+        linear-gradient(145deg, #f8efd2 0%, #efe2bd 100%);
+    }
+
+    .title-block {
+      position: absolute;
+      left: 24px;
+      bottom: 24px;
+      z-index: 700;
+      max-width: min(440px, calc(100vw - 72px));
+      padding: 18px 22px;
+      border: 1px solid rgba(23, 63, 54, 0.35);
+      border-radius: 18px;
+      color: var(--rice);
+      background: rgba(15, 47, 41, 0.88);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 14px 36px var(--shadow);
+    }
+
+    .title-block h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.6rem, 3vw, 2.8rem);
+      letter-spacing: 0.16em;
+      font-weight: 700;
+    }
+
+    .title-block p {
+      margin: 0;
+      line-height: 1.7;
+      color: rgba(246, 239, 217, 0.84);
+      font-size: 0.96rem;
+    }
+
+    .weather-control {
+      position: absolute;
+      top: 22px;
+      left: 22px;
+      z-index: 800;
+      padding: 12px;
+      border: 1px solid rgba(23, 63, 54, 0.28);
+      border-radius: 999px;
+      background: rgba(246, 239, 217, 0.88);
+      box-shadow: 0 10px 24px rgba(15, 47, 41, 0.18);
+      backdrop-filter: blur(8px);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .weather-control span {
+      padding: 0 6px;
+      color: var(--ink-green);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      white-space: nowrap;
+    }
+
+    .weather-control button,
+    .effect-button,
+    .close-panel {
+      border: 0;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .weather-control button {
+      padding: 8px 14px;
+      border-radius: 999px;
+      color: var(--deep-green);
+      background: rgba(255, 255, 255, 0.58);
+      transition: transform 0.2s ease, color 0.2s ease, background 0.2s ease;
+    }
+
+    .weather-control button:hover,
+    .weather-control button.active {
+      transform: translateY(-1px);
+      color: var(--rice);
+      background: var(--ink-green);
+    }
+
+    .detail-panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      z-index: 900;
+      width: min(430px, 92vw);
+      height: 100%;
+      padding: 28px 28px 32px;
+      color: var(--deep-green);
+      background:
+        linear-gradient(90deg, rgba(23, 63, 54, 0.2), transparent 10px),
+        linear-gradient(145deg, rgba(251, 244, 222, 0.97), rgba(234, 219, 184, 0.96));
+      box-shadow: -18px 0 42px rgba(15, 47, 41, 0.28);
+      transform: translateX(110%);
+      transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.25, 1);
+      overflow-y: auto;
+    }
+
+    .detail-panel.open {
+      transform: translateX(0);
+    }
+
+    .close-panel {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      color: var(--rice);
+      background: var(--ink-green);
+      font-size: 1.35rem;
+      line-height: 1;
+    }
+
+    .city-kicker {
+      margin: 8px 0 4px;
+      color: var(--cinnabar);
+      font-size: 0.82rem;
+      letter-spacing: 0.26em;
+      font-weight: 700;
+    }
+
+    .detail-panel h2 {
+      margin: 0;
+      font-size: 2.1rem;
+      letter-spacing: 0.12em;
+    }
+
+    .detail-panel h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 26px 0 10px;
+      color: var(--ink-green);
+      font-size: 1.08rem;
+      letter-spacing: 0.1em;
+    }
+
+    .detail-panel h3::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 4px rgba(185, 149, 85, 0.2);
+    }
+
+    .poem {
+      margin: 0;
+      padding: 18px;
+      border-left: 4px solid var(--ink-green);
+      border-radius: 14px;
+      background: rgba(255, 252, 241, 0.62);
+      color: #243f36;
+      line-height: 1.85;
+      white-space: pre-line;
+      box-shadow: inset 0 0 16px rgba(185, 149, 85, 0.12);
+    }
+
+    .food-card,
+    .anecdote {
+      padding: 16px 18px;
+      border: 1px solid rgba(23, 63, 54, 0.18);
+      border-radius: 16px;
+      background: rgba(255, 252, 241, 0.58);
+      line-height: 1.75;
+    }
+
+    .food-card strong {
+      color: var(--cinnabar);
+      font-size: 1.08rem;
+    }
+
+    .effect-button {
+      width: 100%;
+      margin-top: 18px;
+      padding: 13px 18px;
+      border-radius: 999px;
+      color: var(--rice);
+      background: linear-gradient(135deg, #a64231, #d06b50);
+      font-size: 1rem;
+      letter-spacing: 0.12em;
+      box-shadow: 0 12px 26px rgba(166, 66, 49, 0.28);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .effect-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 30px rgba(166, 66, 49, 0.34);
+    }
+
+    .leaflet-container {
+      font-family: inherit;
+    }
+
+    .leaflet-control-zoom {
+      border: 0 !important;
+      box-shadow: 0 10px 24px rgba(15, 47, 41, 0.18) !important;
+    }
+
+    .leaflet-control-zoom a {
+      color: var(--ink-green) !important;
+      background: rgba(246, 239, 217, 0.92) !important;
+    }
+
+    .city-marker {
+      position: relative;
+      width: 28px;
+      height: 28px;
+      border: 2px solid var(--rice);
+      border-radius: 50% 50% 50% 0;
+      background: var(--cinnabar);
+      box-shadow: 0 7px 18px rgba(15, 47, 41, 0.32);
+      transform: rotate(-45deg);
+      transition: transform 0.18s ease;
+    }
+
+    .city-marker::before {
+      content: "";
+      position: absolute;
+      inset: 7px;
+      border-radius: 50%;
+      background: #f7d7ad;
+      box-shadow: inset 0 0 0 2px rgba(23, 63, 54, 0.14);
+    }
+
+    .city-marker::after {
+      content: attr(data-name);
+      position: absolute;
+      left: 22px;
+      top: -7px;
+      min-width: 3em;
+      padding: 4px 8px;
+      border: 1px solid rgba(23, 63, 54, 0.22);
+      border-radius: 999px;
+      color: var(--ink-green);
+      background: rgba(246, 239, 217, 0.9);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      transform: rotate(45deg);
+      white-space: nowrap;
+      box-shadow: 0 6px 16px rgba(15, 47, 41, 0.14);
+    }
+
+    .leaflet-marker-icon:hover .city-marker {
+      transform: rotate(-45deg) scale(1.12);
+    }
+
+    .rain-overlay,
+    .petal-layer,
+    .sun-glow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .rain-overlay {
+      z-index: 650;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      background: linear-gradient(180deg, rgba(34, 64, 72, 0.16), rgba(246, 239, 217, 0.08));
+    }
+
+    .rain-overlay.active {
+      opacity: 1;
+    }
+
+    .raindrop {
+      position: absolute;
+      top: -12vh;
+      width: 1px;
+      height: 42px;
+      border-radius: 99px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(87, 120, 132, 0.58));
+      animation: rain-fall linear infinite;
+    }
+
+    @keyframes rain-fall {
+      from {
+        transform: translate3d(0, -12vh, 0) rotate(8deg);
+      }
+      to {
+        transform: translate3d(-80px, 118vh, 0) rotate(8deg);
+      }
+    }
+
+    .sun-glow {
+      z-index: 640;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+      background:
+        radial-gradient(circle at 72% 20%, rgba(255, 220, 128, 0.32), transparent 12%),
+        radial-gradient(circle at 72% 20%, rgba(255, 244, 197, 0.18), transparent 28%);
+    }
+
+    .sun-glow.dimmed {
+      opacity: 0;
+    }
+
+    .petal-layer {
+      z-index: 850;
+    }
+
+    .lychee-petal {
+      position: absolute;
+      width: 12px;
+      height: 18px;
+      border-radius: 70% 20% 70% 35%;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.65), transparent 28%),
+        linear-gradient(135deg, #ffe7ea 0%, #ef9ca2 55%, #c84f59 100%);
+      box-shadow: 0 4px 10px rgba(166, 66, 49, 0.16);
+      animation: petal-fall var(--duration, 3.2s) cubic-bezier(0.18, 0.58, 0.32, 1) forwards;
+      transform-origin: center;
+    }
+
+    @keyframes petal-fall {
+      0% {
+        opacity: 0;
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(0.7);
+      }
+      12% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate3d(var(--drift, 30px), var(--fall, 180px), 0) rotate(var(--spin, 250deg)) scale(1.05);
+      }
+    }
+
+    .legend-note {
+      position: absolute;
+      right: 24px;
+      bottom: 24px;
+      z-index: 650;
+      max-width: 280px;
+      padding: 12px 15px;
+      border-radius: 14px;
+      color: rgba(15, 47, 41, 0.86);
+      background: rgba(246, 239, 217, 0.82);
+      box-shadow: 0 10px 24px rgba(15, 47, 41, 0.14);
+      line-height: 1.55;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 700px) {
+      .page-shell {
+        padding: 0;
+      }
+
+      .map-frame {
+        border: 0;
+        border-radius: 0;
+      }
+
+      .weather-control {
+        top: 12px;
+        left: 12px;
+        max-width: calc(100vw - 24px);
+        border-radius: 18px;
+        flex-wrap: wrap;
+      }
+
+      .title-block,
+      .legend-note {
+        display: none;
+      }
+
+      .detail-panel {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-shell">
+    <section class="map-frame" aria-label="苏东坡美食诗词地图">
+      <div id="map"></div>
+      <div class="sun-glow" id="sunGlow"></div>
+      <div class="rain-overlay" id="rainOverlay"></div>
+      <div class="petal-layer" id="petalLayer"></div>
+
+      <div class="weather-control" aria-label="天气切换器">
+        <span>天气</span>
+        <button type="button" class="active" data-weather="sunny">晴天</button>
+        <button type="button" data-weather="rain">细雨</button>
+      </div>
+
+      <aside class="title-block">
+        <h1>东坡食游图</h1>
+        <p>从眉山出发，循着诗词、贬谪、筑堤与烟火滋味，看苏东坡在中国地图上留下的风雅足迹。</p>
+      </aside>
+
+      <div class="legend-note">点击城市印记，从右侧展开诗词、美食与东坡趣事。惠州详情中可触发“荔枝树”花瓣特效。</div>
+
+      <aside class="detail-panel" id="detailPanel" aria-live="polite" aria-label="城市详情卡片">
+        <button type="button" class="close-panel" id="closePanel" aria-label="关闭详情">×</button>
+        <div id="detailContent">
+          <p class="city-kicker">点击地图标记</p>
+          <h2>东坡行迹</h2>
+          <h3>提示</h3>
+          <p class="anecdote">请选择一个城市，查看对应诗词、当地美食和苏东坡趣事。</p>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const cities = [
+      {
+        name: "眉山",
+        lat: 30.0754,
+        lng: 103.8485,
+        poemTitle: "和董传留别",
+        poem: "粗缯大布裹生涯，\n腹有诗书气自华。\n厌伴老儒烹瓠叶，\n强随举子踏槐花。\n囊空不办寻春马，\n眼乱行看择婿车。\n得意犹堪夸世俗，\n诏黄新湿字如鸦。",
+        foodName: "东坡肘子",
+        foodIntro: "眉山传统名菜，肘子软糯红亮、肥而不腻，常被视作东坡家宴风味的代表。",
+        anecdote: "苏轼出生于眉山，后人常说他把故乡的烟火气写进了一生的豪放与旷达。"
+      },
+      {
+        name: "杭州",
+        lat: 30.2741,
+        lng: 120.1551,
+        poemTitle: "饮湖上初晴后雨二首·其二",
+        poem: "水光潋滟晴方好，\n山色空蒙雨亦奇。\n欲把西湖比西子，\n淡妆浓抹总相宜。",
+        foodName: "东坡肉",
+        foodIntro: "五花肉以小火慢焖，色如玛瑙、入口酥润，是杭州最有东坡印记的名菜之一。",
+        anecdote: "任杭州知州时，苏轼疏浚西湖并筑成苏堤，百姓以肉酒相谢，东坡肉的故事也由此流传。"
+      },
+      {
+        name: "常州",
+        lat: 31.8107,
+        lng: 119.9741,
+        poemTitle: "惠崇春江晚景二首·其一",
+        poem: "竹外桃花三两枝，\n春江水暖鸭先知。\n蒌蒿满地芦芽短，\n正是河豚欲上时。",
+        foodName: "常州银丝面",
+        foodIntro: "面条细白如银丝，汤清味鲜，常配焖肉、虾仁等浇头，尽显江南精巧。",
+        anecdote: "晚年苏轼在常州终老，曾有“买田阳羡吾将老”的心愿，把江南水乡当作归处。"
+      },
+      {
+        name: "惠州",
+        lat: 23.1115,
+        lng: 114.4152,
+        poemTitle: "惠州一绝 / 食荔枝",
+        poem: "罗浮山下四时春，\n卢橘杨梅次第新。\n日啖荔枝三百颗，\n不辞长作岭南人。",
+        foodName: "惠州荔枝",
+        foodIntro: "岭南佳果，果肉莹白清甜、香气丰盈，最能呼应东坡在惠州的乐天情怀。",
+        anecdote: "一句“日啖荔枝三百颗”让苏东坡成了惠州荔枝最会写诗的推荐官。",
+        hasLycheeEffect: true
+      },
+      {
+        name: "儋州",
+        lat: 19.5211,
+        lng: 109.5808,
+        poemTitle: "六月二十日夜渡海",
+        poem: "参横斗转欲三更，\n苦雨终风也解晴。\n云散月明谁点缀？\n天容海色本澄清。\n空余鲁叟乘桴意，\n粗识轩辕奏乐声。\n九死南荒吾不恨，\n兹游奇绝冠平生。",
+        foodName: "儋州米烂",
+        foodIntro: "以米浆蒸制成条，佐以蒜油、花生、酸菜等拌食，清爽有韧劲，是当地家常风味。",
+        anecdote: "贬居儋州时，苏轼讲学授徒、传播中原文教，海南人称他开一代文风。"
+      },
+      {
+        name: "开封",
+        lat: 34.7973,
+        lng: 114.3076,
+        poemTitle: "和子由渑池怀旧",
+        poem: "人生到处知何似，\n应似飞鸿踏雪泥。\n泥上偶然留指爪，\n鸿飞那复计东西。\n老僧已死成新塔，\n坏壁无由见旧题。\n往日崎岖还记否，\n路长人困蹇驴嘶。",
+        foodName: "开封灌汤包",
+        foodIntro: "薄皮大馅、汤汁丰盈，提起似灯笼，放下如菊花，是汴梁风味名点。",
+        anecdote: "苏轼多次出入汴京应试任职，与弟苏辙唱和，留下“雪泥鸿爪”的人生妙喻。"
+      },
+      {
+        name: "黄州",
+        lat: 30.4477,
+        lng: 114.8794,
+        poemTitle: "定风波·莫听穿林打叶声",
+        poem: "三月七日，沙湖道中遇雨。雨具先去，同行皆狼狈，余独不觉。已而遂晴，故作此词。\n\n莫听穿林打叶声，\n何妨吟啸且徐行。\n竹杖芒鞋轻胜马，谁怕？\n一蓑烟雨任平生。\n\n料峭春风吹酒醒，微冷，\n山头斜照却相迎。\n回首向来萧瑟处，归去，\n也无风雨也无晴。",
+        foodName: "黄州东坡饼",
+        foodIntro: "层酥香脆、甜咸皆宜，是黄州以东坡之名流传的地方点心。",
+        anecdote: "被贬黄州后，苏轼在城东坡地耕种，自号“东坡居士”，也在烟火厨房里琢磨出东坡肉雏形。"
+      },
+      {
+        name: "徐州",
+        lat: 34.2058,
+        lng: 117.2841,
+        poemTitle: "浣溪沙·簌簌衣巾落枣花",
+        poem: "簌簌衣巾落枣花，\n村南村北响缲车。\n牛衣古柳卖黄瓜。\n\n酒困路长惟欲睡，\n日高人渴漫思茶。\n敲门试问野人家。",
+        foodName: "徐州地锅鸡",
+        foodIntro: "铁锅炖鸡配锅边贴饼，汤浓肉香、饼吸鲜味，是豪爽的徐州风味。",
+        anecdote: "任徐州知州时黄河暴涨，苏轼亲上城堤守水，城中百姓至今传颂他的担当。"
+      },
+      {
+        name: "定州",
+        lat: 38.5162,
+        lng: 114.9903,
+        poemTitle: "雪浪石",
+        poem: "太行西来万马屯，\n势与岱岳争雄尊。\n飞狐上党天下脊，\n半掩落日先黄昏。\n削成山东二百郡，\n气压代北三家村。\n千峰右卷矗牙帐，\n崩崖凿断开土门。\n朅来城下作飞石，\n一炮惊落天骄魂。\n承平百年烽燧冷，\n此物僵卧枯榆根。\n画师争摹雪浪势，\n天工不见雷斧痕。\n离堆四面绕江水，\n坐无蜀士谁与论。\n老翁儿戏作飞雨，\n把酒坐看珠跳盆。\n此身自幻孰非梦，\n故国山水聊心存。",
+        foodName: "定州焖子",
+        foodIntro: "以红薯淀粉、肉汤等蒸制，切片煎炖皆可，口感软弹、滋味朴厚。",
+        anecdote: "苏轼在定州得到一块白纹奇石，命名“雪浪石”，还建雪浪斋赏石题咏。"
+      },
+      {
+        name: "平顶山",
+        lat: 33.7661,
+        lng: 113.1924,
+        poemTitle: "念奴娇·赤壁怀古",
+        poem: "大江东去，浪淘尽，\n千古风流人物。\n故垒西边，人道是，\n三国周郎赤壁。\n乱石穿空，惊涛拍岸，\n卷起千堆雪。\n江山如画，一时多少豪杰。\n\n遥想公瑾当年，\n小乔初嫁了，雄姿英发。\n羽扇纶巾，谈笑间，\n樯橹灰飞烟灭。\n故国神游，多情应笑我，\n早生华发。\n人生如梦，一尊还酹江月。",
+        foodName: "郏县饸饹面",
+        foodIntro: "荞麦或小麦面压制成条，浇羊肉汤或臊子，筋道热烈，是平顶山郏县名吃。",
+        anecdote: "平顶山郏县有三苏园，苏轼与苏洵、苏辙长眠于此，后人称为“三苏坟”。"
+      }
+    ];
+
+    const chinaMainland = [
+      [49.2, 87.8], [48.2, 82.5], [45.5, 79.8], [42.7, 75.4], [39.5, 73.6],
+      [35.4, 76.0], [32.3, 78.8], [30.1, 81.0], [28.3, 85.0], [27.4, 90.3],
+      [28.2, 94.6], [27.1, 98.5], [24.5, 99.8], [22.0, 101.8], [21.2, 105.2],
+      [21.6, 108.8], [18.3, 110.1], [21.8, 112.3], [22.6, 115.6], [24.5, 118.4],
+      [26.7, 119.8], [29.3, 121.6], [31.6, 121.3], [34.0, 122.4], [37.2, 122.1],
+      [39.4, 124.4], [41.7, 128.0], [43.4, 131.0], [46.0, 130.2], [48.4, 125.0],
+      [52.0, 120.3], [49.8, 116.4], [49.2, 111.0], [47.4, 106.5], [45.2, 101.0],
+      [44.8, 96.0], [46.8, 91.0], [49.2, 87.8]
+    ];
+
+    const hainan = [[20.1, 108.6], [20.0, 110.2], [19.1, 111.0], [18.1, 110.3], [18.3, 108.9], [19.2, 108.4], [20.1, 108.6]];
+    const taiwan = [[25.3, 121.5], [24.2, 122.0], [22.8, 121.3], [21.9, 120.7], [22.8, 120.1], [24.0, 120.5], [25.3, 121.5]];
+
+    const map = L.map("map", {
+      center: [35, 108],
+      zoom: 4,
+      minZoom: 3,
+      maxZoom: 7,
+      zoomControl: false,
+      attributionControl: false,
+      maxBounds: [[15, 70], [55, 135]],
+      maxBoundsViscosity: 0.75
+    });
+
+    L.control.zoom({ position: "bottomleft" }).addTo(map);
+
+    const outlineStyle = {
+      color: "#173f36",
+      weight: 2.5,
+      opacity: 0.84,
+      fillColor: "#d8dec1",
+      fillOpacity: 0.42,
+      dashArray: "8 6"
+    };
+
+    L.polygon(chinaMainland, outlineStyle).addTo(map);
+    L.polygon(hainan, { ...outlineStyle, weight: 1.6, fillOpacity: 0.38 }).addTo(map);
+    L.polygon(taiwan, { ...outlineStyle, weight: 1.6, fillOpacity: 0.34 }).addTo(map);
+
+    const detailPanel = document.getElementById("detailPanel");
+    const detailContent = document.getElementById("detailContent");
+    const closePanel = document.getElementById("closePanel");
+    const petalLayer = document.getElementById("petalLayer");
+    const rainOverlay = document.getElementById("rainOverlay");
+    const sunGlow = document.getElementById("sunGlow");
+    const weatherButtons = document.querySelectorAll(".weather-control button");
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function openDetail(city) {
+      detailContent.innerHTML = `
+        <p class="city-kicker">东坡行迹 · ${escapeHtml(city.name)}</p>
+        <h2>${escapeHtml(city.name)}</h2>
+
+        <h3>诗词 · ${escapeHtml(city.poemTitle)}</h3>
+        <p class="poem">${escapeHtml(city.poem)}</p>
+
+        <h3>当地美食</h3>
+        <p class="food-card"><strong>${escapeHtml(city.foodName)}</strong><br>${escapeHtml(city.foodIntro)}</p>
+
+        <h3>东坡趣事</h3>
+        <p class="anecdote">${escapeHtml(city.anecdote)}</p>
+
+        ${city.hasLycheeEffect ? '<button type="button" class="effect-button" id="lycheeButton">唤一阵荔枝花雨</button>' : ''}
+      `;
+      detailPanel.classList.add("open");
+      map.flyTo([city.lat, city.lng], Math.max(map.getZoom(), 5), { duration: 0.8 });
+
+      if (city.hasLycheeEffect) {
+        document.getElementById("lycheeButton").addEventListener("click", () => createLycheePetals(city));
+      }
+    }
+
+    cities.forEach((city) => {
+      const marker = L.marker([city.lat, city.lng], {
+        title: city.name,
+        icon: L.divIcon({
+          className: "",
+          html: `<div class="city-marker" data-name="${escapeHtml(city.name)}"></div>`,
+          iconSize: [120, 34],
+          iconAnchor: [14, 28]
+        })
+      }).addTo(map);
+
+      marker.on("click", () => openDetail(city));
+    });
+
+    closePanel.addEventListener("click", () => detailPanel.classList.remove("open"));
+
+    function createLycheePetals(city) {
+      const origin = map.latLngToContainerPoint([city.lat, city.lng]);
+      const count = 72;
+
+      for (let i = 0; i < count; i += 1) {
+        const petal = document.createElement("span");
+        const startX = origin.x + (Math.random() - 0.5) * 160;
+        const startY = origin.y - 95 + (Math.random() - 0.5) * 80;
+        const drift = (Math.random() - 0.5) * 220;
+        const fall = 120 + Math.random() * 220;
+
+        petal.className = "lychee-petal";
+        petal.style.left = `${startX}px`;
+        petal.style.top = `${startY}px`;
+        petal.style.setProperty("--drift", `${drift}px`);
+        petal.style.setProperty("--fall", `${fall}px`);
+        petal.style.setProperty("--spin", `${180 + Math.random() * 420}deg`);
+        petal.style.setProperty("--duration", `${2.4 + Math.random() * 2.2}s`);
+        petal.style.animationDelay = `${Math.random() * 0.6}s`;
+        petalLayer.appendChild(petal);
+        petal.addEventListener("animationend", () => petal.remove());
+      }
+    }
+
+    function seedRain() {
+      const dropCount = 120;
+      rainOverlay.innerHTML = "";
+
+      for (let i = 0; i < dropCount; i += 1) {
+        const drop = document.createElement("span");
+        drop.className = "raindrop";
+        drop.style.left = `${Math.random() * 110}%`;
+        drop.style.animationDuration = `${0.7 + Math.random() * 0.8}s`;
+        drop.style.animationDelay = `${Math.random() * 1.8}s`;
+        drop.style.opacity = `${0.25 + Math.random() * 0.55}`;
+        rainOverlay.appendChild(drop);
+      }
+    }
+
+    function setWeather(weather) {
+      const isRain = weather === "rain";
+      rainOverlay.classList.toggle("active", isRain);
+      sunGlow.classList.toggle("dimmed", isRain);
+      weatherButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.weather === weather);
+      });
+    }
+
+    weatherButtons.forEach((button) => {
+      button.addEventListener("click", () => setWeather(button.dataset.weather));
+    });
+
+    seedRain();
+  </script>
+</body>
+</html>
