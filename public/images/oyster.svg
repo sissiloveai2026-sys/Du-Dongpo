@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">ﬁwù“;</title>
+  <desc id="desc">wWwπÑwùj±</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#08213f"/>
+      <stop offset="0.58" stop-color="#0c6d95"/>
+      <stop offset="1" stop-color="#9fe7d7"/>
+    </linearGradient>
+    <linearGradient id="shell" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f7f2da"/>
+      <stop offset=".45" stop-color="#9eb1b3"/>
+      <stop offset="1" stop-color="#435a65"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#041221" flood-opacity=".42"/>
+    </filter>
+  </defs>
+  <rect width="960" height="600" fill="url(#bg)"/>
+  <path d="M0 400c115-52 204-47 299 16 136 91 272 67 379 3 95-58 181-55 282-4v185H0Z" fill="#e9f7ee" opacity=".32"/>
+  <path d="M0 448c119-45 216-38 312 20 126 76 267 82 402 12 91-47 158-47 246 7v113H0Z" fill="#022033" opacity=".55"/>
+  <g filter="url(#shadow)">
+    <path d="M282 395c83-171 239-253 393-133 6 184-225 266-393 133Z" fill="url(#shell)"/>
+    <path d="M323 378c78-111 194-163 304-80-38 92-185 140-304 80Z" fill="#fff6df"/>
+    <ellipse cx="485" cy="346" rx="95" ry="52" fill="#ffd9a7"/>
+    <circle cx="530" cy="321" r="13" fill="#fff8e9" opacity=".85"/>
+  </g>
+  <g stroke="#607985" stroke-width="7" stroke-linecap="round" opacity=".55">
+    <path d="M318 376c65-60 143-91 242-100"/>
+    <path d="M365 404c58-58 132-90 221-96"/>
+    <path d="M419 422c39-43 89-70 149-78"/>
+  </g>
+  <text x="72" y="96" fill="#f3fbff" font-size="44" font-family="serif" font-weight="700">ﬁ ∑ wù</text>
+  <text x="74" y="142" fill="#c8f4ff" font-size="24" font-family="serif">ws¶)Ø◊</text>
+</svg>

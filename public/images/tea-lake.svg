@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">mﬁ6V“;</title>
+  <desc id="desc">V4r6œ‹q</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#143d38"/>
+      <stop offset=".55" stop-color="#5d8e72"/>
+      <stop offset="1" stop-color="#d7c186"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#06231f" flood-opacity=".38"/>
+    </filter>
+  </defs>
+  <rect width="960" height="600" fill="url(#bg)"/>
+  <path d="M0 284c102-82 206-103 322-39 143 78 274 63 404-28 87-61 157-61 234-25v408H0Z" fill="#173f36" opacity=".58"/>
+  <path d="M0 364c135-38 253-30 357 12 124 51 261 49 404-8 77-31 140-31 199 0v232H0Z" fill="#dcebd7" opacity=".25"/>
+  <g filter="url(#shadow)">
+    <ellipse cx="500" cy="408" rx="225" ry="69" fill="#e9d6ad"/>
+    <path d="M334 334h276c-10 94-69 143-138 143s-127-49-138-143Z" fill="#fff0c7"/>
+    <ellipse cx="472" cy="334" rx="139" ry="40" fill="#7eb36b"/>
+    <ellipse cx="472" cy="330" rx="111" ry="25" fill="#b7d889"/>
+  </g>
+  <path d="M545 341c63-9 99 8 98 44-1 42-54 58-103 32" fill="none" stroke="#fff0c7" stroke-width="23" stroke-linecap="round"/>
+  <g fill="none" stroke="#eef5d2" stroke-width="8" stroke-linecap="round" opacity=".72">
+    <path d="M420 252c-16-43 15-53 1-91"/>
+    <path d="M480 258c-10-36 23-54 7-94"/>
+    <path d="M537 263c-14-45 22-54 10-91"/>
+  </g>
+  <circle cx="232" cy="206" r="36" fill="#fff5cd" opacity=".62"/>
+  <text x="72" y="96" fill="#fff9e8" font-size="44" font-family="serif" font-weight="700">mﬁ ∑ 6Vú</text>
+  <text x="74" y="142" fill="#f5e6b6" font-size="24" font-family="serif">4IKﬂtπ}</text>
+</svg>

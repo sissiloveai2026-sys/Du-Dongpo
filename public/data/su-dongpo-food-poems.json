@@ -1,0 +1,141 @@
+{
+  "title": "苏东坡美食诗词地图",
+  "description": "以苏轼行旅为线索整理的美食、诗文与地理坐标示例数据。",
+  "places": [
+    {
+      "id": "huangzhou-dongpo-pork",
+      "city": "黄州",
+      "location": "湖北黄冈黄州区",
+      "period": "元丰三年至七年",
+      "coordinates": {
+        "lat": 30.45,
+        "lng": 114.87
+      },
+      "color": "#ff9b54",
+      "food": {
+        "name": "东坡肉",
+        "description": "以慢火、少水、足火候成就的红烧猪肉，也是东坡饮食书写中最有代表性的味道。"
+      },
+      "poem": {
+        "title": "猪肉颂",
+        "lines": [
+          "净洗铛，少著水，",
+          "柴头罨烟焰不起。",
+          "待他自熟莫催他，",
+          "火候足时他自美。"
+        ]
+      },
+      "summary": "贬居黄州期间，苏轼在清苦生活里写下《猪肉颂》，把日常烹饪化为旷达自适的生活美学。",
+      "image": "/images/dongpo-pork.svg",
+      "imageCaption": "黄州东坡肉：慢火与豁达共同成味。"
+    },
+    {
+      "id": "huizhou-lychee",
+      "city": "惠州",
+      "location": "广东惠州",
+      "period": "绍圣元年至三年",
+      "coordinates": {
+        "lat": 23.09,
+        "lng": 114.41
+      },
+      "color": "#ff5f7e",
+      "food": {
+        "name": "荔枝",
+        "description": "岭南鲜果的代表，甜香丰沛，常被用来象征惠州气候与东坡的乐天心境。"
+      },
+      "poem": {
+        "title": "惠州一绝",
+        "lines": [
+          "罗浮山下四时春，",
+          "卢橘杨梅次第新。",
+          "日啖荔枝三百颗，",
+          "不辞长作岭南人。"
+        ]
+      },
+      "summary": "被贬惠州后，苏轼仍能在荔枝与岭南山水里发现明亮生机，这首诗也成为东坡美食地图上的高光坐标。",
+      "image": "/images/lychee.svg",
+      "imageCaption": "惠州荔枝：四时春气里的甜。"
+    },
+    {
+      "id": "danzhou-oyster",
+      "city": "儋州",
+      "location": "海南儋州",
+      "period": "绍圣四年至元符三年",
+      "coordinates": {
+        "lat": 19.52,
+        "lng": 109.58
+      },
+      "color": "#74d4ff",
+      "food": {
+        "name": "海蚝",
+        "description": "海南海味之一，东坡在儋州文字中屡见对风土与饮食的惊喜。"
+      },
+      "poem": {
+        "title": "食蚝帖意",
+        "lines": [
+          "海蛮献蚝，",
+          "剖之得数升。",
+          "与酒并煮，",
+          "食之甚美。"
+        ]
+      },
+      "summary": "远谪海南时，苏轼把陌生海味写成风土记忆。这里采用《食蚝》相关文字意象，呈现东坡抵达天涯后的味觉发现。",
+      "image": "/images/oyster.svg",
+      "imageCaption": "儋州海蚝：天涯海角的鲜味。"
+    },
+    {
+      "id": "hangzhou-tea",
+      "city": "杭州",
+      "location": "浙江杭州西湖",
+      "period": "熙宁、元祐年间两度任杭",
+      "coordinates": {
+        "lat": 30.25,
+        "lng": 120.16
+      },
+      "color": "#8fd17f",
+      "food": {
+        "name": "茶与湖鲜",
+        "description": "杭州山水、茶汤与湖鲜构成东坡任杭时期的清雅饮食背景。"
+      },
+      "poem": {
+        "title": "饮湖上初晴后雨",
+        "lines": [
+          "水光潋滟晴方好，",
+          "山色空蒙雨亦奇。",
+          "欲把西湖比西子，",
+          "淡妆浓抹总相宜。"
+        ]
+      },
+      "summary": "杭州未必只是一道菜，更是一张风雅餐桌：西湖、龙井、湖鲜与诗句共同塑造了东坡审美中的江南滋味。",
+      "image": "/images/tea-lake.svg",
+      "imageCaption": "杭州茶与湖鲜：西湖风物入诗入味。"
+    },
+    {
+      "id": "kaifeng-laotao",
+      "city": "汴京",
+      "location": "河南开封",
+      "period": "北宋都城岁月",
+      "coordinates": {
+        "lat": 34.80,
+        "lng": 114.31
+      },
+      "color": "#f2d16b",
+      "food": {
+        "name": "老饕宴",
+        "description": "以《老饕赋》的饮食理想为灵感，概括东坡对精细烹调和宴饮审美的理解。"
+      },
+      "poem": {
+        "title": "老饕赋句意",
+        "lines": [
+          "盖聚物之夭美，",
+          "以养吾之老饕。",
+          "婉彼姬姜，",
+          "颜如李桃。"
+        ]
+      },
+      "summary": "汴京代表苏轼进入北宋文化中心后的审美经验。《老饕赋》展现他对食物、器物与宴饮秩序的文学化想象。",
+      "image": "/images/laotao-feast.svg",
+      "imageCaption": "汴京老饕宴：都市繁华里的饮食想象。"
+    }
+  ]
+}
